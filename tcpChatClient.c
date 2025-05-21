@@ -14,7 +14,6 @@ int main() {
     int s;
     struct sockaddr_in sock; //a structure for handling internet addresses
     char buf[512];
-    char *message;
 
     //create the socket
     s = socket(AF_INET, SOCK_STREAM, 0);
@@ -37,10 +36,13 @@ int main() {
 	return -1;
     }
 
-    while (1) {
-	printf("Connected");
-	sleep(5);
+    //keeps connection open as long as the user doesn't type "exit"
+    while (strcmp(buf, "exit\n") != 0) {
+	fgets(buf, sizeof(buf), stdin); 
+	write(s, &buf, strlen(buf));
     }
+    
+    printf("Disconnecting\n");
     close(s);
 }
 
