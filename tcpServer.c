@@ -14,7 +14,7 @@ int main() {
     struct sockaddr_in sock, client;
     socklen_t addrlen;
     char buf[512];
-    char *data;
+    int bytes;
 
     //clear memory just incase
     memset(&sock, 0, sizeof(sock));
@@ -55,10 +55,12 @@ int main() {
     }
 
     printf("Client connected\n");
-    read(c, buf, 511);
-    data = "Random test";
-    write(c, data, strlen(data));
+    while((bytes = read(c, buf, sizeof(buf)) -1) > 0) {
+	buf[bytes] = '\0';
+	printf("Received: %s\n", buf);
 
+	write(c, "Got it\n", 7);
+    }
     close(c);
     close(s);
 }
