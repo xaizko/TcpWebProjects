@@ -12,7 +12,7 @@
 int main() {
     int s, c;
     struct sockaddr_in sock, client;
-    socklen_t addrlen;
+    socklen_t addrlen = sizeof(client);
     char buf[512];
     int bytes;
 
@@ -29,8 +29,12 @@ int main() {
     }
 
     sock.sin_family = AF_INET;
-    sock.sin_addr.s_addr = 0;
+    sock.sin_addr.s_addr = INADDR_ANY; //const value for local host
     sock.sin_port = htons(PORT);
+
+    //make sure address is reusable
+    int opt = 1;
+    setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
     //bind socket to address
     if (bind(s, (struct sockaddr *)&sock, sizeof(sock))) {
@@ -55,12 +59,12 @@ int main() {
     }
 
     printf("Client connected\n");
-    while((bytes = read(c, buf, sizeof(buf)) -1) > 0) {
+    while ((bytes = read(c, buf, sizeof(buf)-1)) > 0) { 
 	buf[bytes] = '\0';
-	printf("Received: %s\n", buf);
-
-	write(c, "Got it\n", 7);
+	printf("Client: %s\n", buf);
     }
+
+    printf("Client disconnected\n");
     close(c);
     close(s);
 }
