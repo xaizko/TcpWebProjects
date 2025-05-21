@@ -13,10 +13,12 @@ int main() {
     int s, c;
     struct sockaddr_in sock, client;
     socklen_t addrlen;
+    char buf[512];
+    char *data;
 
     //clear memory just incase
-    memset(&srv, 0, sizeof(srv));
-    memset(&cli, 0, sizeof(cli));
+    memset(&sock, 0, sizeof(sock));
+    memset(&client, 0, sizeof(client));
 
     //create socket
     s = socket(AF_INET, SOCK_STREAM, 0);
@@ -26,24 +28,26 @@ int main() {
 	return 1;
     }
 
-    srv.sin_family = AF_INET;
-    srv.sin_addr.s_addr = 0;
-    srv.sin_port = htons(PORT);
+    sock.sin_family = AF_INET;
+    sock.sin_addr.s_addr = 0;
+    sock.sin_port = htons(PORT);
 
     //bind socket to address
-    if (bind(s, (struct sockadrr*)&srv, sizeof(srv))) {
+    if (bind(s, (struct sockaddr *)&sock, sizeof(sock))) {
 	fprintf(stderr, "Failed to bind\n");
 	close(s);
 	return 1;
     }
 
+    //listen for connections
     if (listen(s, 5)) {
 	fprintf(stderr, "Listen failed\n");
 	close(s);
 	return 1;
     }
 
-    c = accept(s, (struct sockaddr *)&srv, &addrlen);
+    //accept connections
+    c = accept(s, (struct sockaddr *)&sock, &addrlen);
     if (c < 0) {
 	fprintf(stderr, "Failed to accept connection\n");
 	close(s);
@@ -51,4 +55,10 @@ int main() {
     }
 
     printf("Client connected\n");
+    read(c, buf, 511);
+    data = "Random test";
+    write(c, data, strlen(data));
+
+    close(c);
+    close(s);
 }
