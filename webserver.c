@@ -51,10 +51,10 @@ int main(int argc, char *argv[]) {
 	return -1;
     }
 
-    printf("Listening on %s:%s\n", LISTENADDR, port);
+    printf("Listening on %s:%c\n", LISTENADDR, port);
     while (1) {
 	c = cli_accept(s);
-	if (!c) {
+	if (c < 0) {
 	    fprintf(stderr, "failed to accept");
 	    continue;
 	}
