@@ -19,22 +19,11 @@ struct httpRequest {
 int cli_accept(int s);
 void cli_conn(int s, int c);
 struct httpRequest *parse_http(char *str);
+char *cli_read(int c); 
 
 int main(int argc, char *argv[]) {
     int s, c;
     char *port;
-    struct httpRequest *req;
-    char buf[512];
-    
-
-    char *template = "GET /sdfsdfd HTTP/1.1\n";
-    memset(buf, 0, 512);
-    strncpy(buf, template, 511);
-    req = parse_http(buf);
-    printf("%s", req->method);
-    free(req);
-
-    return 0;
 
     //check for correct usage
     if (argc < 2) {
@@ -104,11 +93,29 @@ int cli_accept(int s) {
 	return -1;
     }
 
-    return 0;
+    return c;
 }
 
 void cli_conn(int s, int c) {
-    return; 
+    struct httpRequest *req;
+    char *p;
+
+    p = cli_read(c);
+    if (!p) {
+	fprintf(stderr, "failed to read\n");
+	close(c);
+	return;
+    }
+
+    req = parse_http(p);
+    if (!req) {
+	fprintf(stderr, "failed to parse\n");
+    }
+
+    printf("%s\n%s", req->method, req->url);
+    free(req);
+    close(c);
+    return;
 }
 
 
@@ -117,7 +124,6 @@ struct httpRequest *parse_http(char *str) {
     char *p;
 
     req = malloc(sizeof(struct httpRequest));
-    memset(req, 0, sizeof(struct httpRequest));
 
     for (p=str; p && *p != ' '; p++);
     if (*p == ' '){
@@ -129,5 +135,26 @@ struct httpRequest *parse_http(char *str) {
     }
 
     strncpy(req->method, str, 7);
+
+    for (str=++p; p && *p != ' '; p++);
+    if (*p == ' '){
+	*p = 0;
+    } else {
+	fprintf(stderr, "2nd space not found while parsing\n");
+	free(req);
+	return 0;
+    }
+
+    strncpy(req->url, str, 127);
     return req;
+}
+
+char *cli_read(int c) {
+    static char buf[512];
+    memset(buf, 0, 512);
+    if (read(c, buf, 511) < 0) {
+	printf("read() error\n");
+	return 0;
+    }
+    return buf;
 }
