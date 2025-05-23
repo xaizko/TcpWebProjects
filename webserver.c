@@ -9,13 +9,32 @@
 
 #define LISTENADDR "127.0.0.1"
 
+struct httpRequest {
+    char method[8];
+    char url[128];
+
+}; //typedef struct httpRequest;
+
 //function headers
 int cli_accept(int s);
 void cli_conn(int s, int c);
+struct httpRequest *parse_http(char *str);
 
 int main(int argc, char *argv[]) {
     int s, c;
     char *port;
+    struct httpRequest *req;
+    char buf[512];
+    
+
+    char *template = "GET /sdfsdfd HTTP/1.1\n";
+    memset(buf, 0, 512);
+    strncpy(buf, template, 511);
+    req = parse_http(buf);
+    printf("%s", req->method);
+    free(req);
+
+    return 0;
 
     //check for correct usage
     if (argc < 2) {
@@ -37,6 +56,9 @@ int main(int argc, char *argv[]) {
     server.sin_addr.s_addr = inet_addr(LISTENADDR);
     server.sin_port = htons(atoi(port));
 
+    //make sure address is reusable
+    int opt = 1;
+    setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
     // bind socket to address
     if (bind(s, (struct sockaddr *)&server, sizeof(server))) {
 	fprintf(stderr, "binding failed\n");
@@ -51,7 +73,9 @@ int main(int argc, char *argv[]) {
 	return -1;
     }
 
-    printf("Listening on %s:%c\n", LISTENADDR, port);
+    printf("Listening on %s:%s\n", LISTENADDR, port);
+
+    //scan for connects
     while (1) {
 	c = cli_accept(s);
 	if (c < 0) {
@@ -84,5 +108,26 @@ int cli_accept(int s) {
 }
 
 void cli_conn(int s, int c) {
+    return; 
+}
 
+
+struct httpRequest *parse_http(char *str) {
+    struct httpRequest *req;
+    char *p;
+
+    req = malloc(sizeof(struct httpRequest));
+    memset(req, 0, sizeof(struct httpRequest));
+
+    for (p=str; p && *p != ' '; p++);
+    if (*p == ' '){
+	*p = 0;
+    } else {
+	fprintf(stderr, "no space found while parsing\n");
+	free(req);
+	return 0;
+    }
+
+    strncpy(req->method, str, 7);
+    return req;
 }
