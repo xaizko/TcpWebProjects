@@ -13,13 +13,15 @@ struct httpRequest {
     char method[8];
     char url[128];
 
-}; //typedef struct httpRequest;
+};
 
 //function headers
 int cli_accept(int s);
 void cli_conn(int s, int c);
 struct httpRequest *parse_http(char *str);
 char *cli_read(int c); 
+void http_headers(int c, int code);
+void http_response(int c, char *contentType, char *data);
 
 int main(int argc, char *argv[]) {
     int s, c;
@@ -99,6 +101,7 @@ int cli_accept(int s) {
 void cli_conn(int s, int c) {
     struct httpRequest *req;
     char *p;
+    char *response;
 
     p = cli_read(c);
     if (!p) {
@@ -112,7 +115,16 @@ void cli_conn(int s, int c) {
 	fprintf(stderr, "failed to parse\n");
     }
 
-    printf("%s\n%s", req->method, req->url);
+    if (!strcmp(req->method, "GET") && !strcmp(req->url, "/app/webpage")) {
+	response = "<html>Hello world</html>";
+	http_headers(c, 200);
+	http_response(c, "text/html", response);
+    } else {
+	response = "File not found";
+	http_headers(c, 404);
+	http_response(c, "text/plain", response);
+    }
+
     free(req);
     close(c);
     return;
@@ -157,4 +169,36 @@ char *cli_read(int c) {
 	return 0;
     }
     return buf;
+}
+
+void http_headers(int c, int code) {
+    char buf[512];
+    int n;
+
+    snprintf(buf, 511, 
+	"HTTP/1.0 %d OK\n"
+	"Server: webserver.c\n"
+	"Content-Language: en\n"
+	"Expires: -1\n", code);
+
+    n = strlen(buf);
+    write(c, buf, n);
+
+    return;
+}
+
+void http_response(int c, char *contentType, char *data) {
+    char buf[512];
+    int n;
+
+    n = strlen(data);
+    snprintf(buf, 511,
+	     "Content-Type: %s\n"
+	     "Content-Length: %d\n"
+	     "\n%s\n", contentType, n, data);
+
+    n = strlen(buf);
+    write(c, buf, n);
+
+    return;
 }
